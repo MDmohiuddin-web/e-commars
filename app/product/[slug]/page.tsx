@@ -2,6 +2,7 @@ import data from "@/app/lib/models/Data";
 import Image from "next/image";
 import Link from "next/link";
 import React from "react";
+import AddToCart from "../AddProduct";
 
 interface ProductDetailsProps {
   params: {
@@ -66,11 +67,13 @@ const ProductDetails: React.FC<ProductDetailsProps> = ({ params }) => {
                   {product.countInStock > 0 ? "In stock" : "Unavailable"}
                 </div>
               </div>
-              <div className="card-actions justify-center">
-                <button className="btn btn-primary w-full" type="button">
-                  Add to cart
-                </button>
-              </div>
+              {product.countInStock !== 0 && (
+                <div className="card-actions justify-center">
+                  <AddToCart
+                    item={{ ...product, qty: 0, color: "", size: "" }}
+                  ></AddToCart>
+                </div>
+              )}
             </div>
           </div>
         </div>

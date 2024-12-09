@@ -8,9 +8,10 @@ type Cart = {
   taxPrice: number;
   shippingPrice: number;
   totalPrice: number;
+  increase: (item: OrderItem) => void;
 };
 
-const initialState: Cart = {
+const initialState: Omit<Cart, 'increase'> = {
   items: [],
   itemPrice: 0,
   taxPrice: 0,
@@ -18,37 +19,27 @@ const initialState: Cart = {
   totalPrice: 0,
 };
 
-export const cartStore = create(() => initialState);
-
-export default function useCartService() {
-  const { items, itemPrice, taxPrice, shippingPrice, totalPrice } = cartStore((state) => ({
-    items: state.items,
-    itemPrice: state.itemPrice,
-    taxPrice: state.taxPrice,
-    shippingPrice: state.shippingPrice,
-    totalPrice: state.totalPrice
-  }));
-
-  return {
-    items, itemPrice, taxPrice, shippingPrice, totalPrice,
-    increase: (item: OrderItem) => {
-      const exist = items.find((x) => x.slug === item.slug);
-      const updateCartItems = exist 
-        ? items.map((x) => x.slug === item.slug ? { ...exist, qty: exist.qty + 1 } : x)
-        : [...items, { ...item, qty: 1 }];
+export const useCartStore = create<Cart>((set) => ({
+  ...initialState,
+  increase: (item: OrderItem) => {
+    set((state) => {
+      const exist = state.items.find((x) => x.slug === item.slug);
+      const updatedCartItems = exist
+        ? state.items.map((x) => x.slug === item.slug ? { ...exist, qty: exist.qty + 1 } : x)
+        : [...state.items, { ...item, qty: 1 }];
       
-      const { itemPrice, taxPrice, shippingPrice, totalPrice } = calcPrice(updateCartItems);
+      const { itemPrice, taxPrice, shippingPrice, totalPrice } = calcPrice(updatedCartItems);
 
-      cartStore.setState({
-        items: updateCartItems,
+      return {
+        items: updatedCartItems,
         itemPrice,
         taxPrice,
         shippingPrice,
-        totalPrice
-      });
-    }
-  };
-}
+        totalPrice,
+      };
+    });
+  },
+}));
 
 const calcPrice = (items: OrderItem[]) => {
   const itemPrice = round2(
@@ -59,3 +50,16 @@ const calcPrice = (items: OrderItem[]) => {
   const totalPrice = round2(itemPrice + shippingPrice + taxPrice);
   return { itemPrice, taxPrice, shippingPrice, totalPrice };
 };
+
+export default function useCartService() {
+  const items = useCartStore((state) => state.items);
+  const itemPrice = useCartStore((state) => state.itemPrice);
+  const taxPrice = useCartStore((state) => state.taxPrice);
+  const shippingPrice = useCartStore((state) => state.shippingPrice);
+  const totalPrice = useCartStore((state) => state.totalPrice);
+  const increase = useCartStore((state) => state.increase);
+
+  return {
+    items, itemPrice, taxPrice, shippingPrice, totalPrice, increase,
+  };
+}
